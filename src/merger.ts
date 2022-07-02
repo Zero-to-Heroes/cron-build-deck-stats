@@ -9,10 +9,9 @@ export const mergeDeckData = (
 	lastPatch: PatchInfo,
 ): FinalDeckData => {
 	const allTimePeriods: {
-		id: 'all-time' | 'past-30' | 'past-seven' | 'past-three' | 'last-patch';
+		id: 'past-30' | 'past-seven' | 'past-three' | 'last-patch';
 		filter: (data: DeckData) => boolean;
 	}[] = [
-		{ id: 'all-time', filter: (data: DeckData) => true },
 		{
 			id: 'past-30',
 			filter: (data: DeckData) => Date.now() - data.lastUpdateDate.getTime() <= 30 * 24 * 60 * 60 * 1000,
