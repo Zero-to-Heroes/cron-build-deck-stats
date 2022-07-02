@@ -1,0 +1,29 @@
+# https://github.com/awslabs/serverless-application-model/blob/develop/versions/2016-10-31.md
+# Indentation needs to be set with spaces, because YAML...
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda function that builds deck stats on a regular schedule
+
+Resources:
+    BuildDeckStatsFunction:
+        Type: AWS::Serverless::Function
+        Properties:
+            Handler: build-deck-stats.default
+            Runtime: nodejs12.x
+            Timeout: 900
+            CodeUri: ./dist/build-deck-stats
+            MemorySize: 700
+            Policies:
+                - AWSLambdaVPCAccessExecutionRole
+                - AmazonSESFullAccess
+                - SecretsManagerReadWrite
+                - AmazonSNSReadOnlyAccess
+                - AmazonS3FullAccess
+                # - arn:aws:iam::478062583808:policy/CloudWatchPolicyForLambda # See https://stackoverflow.com/questions/51166504/disable-cloudwatch-to-monitor-logs-for-lambda-function
+            Tags:
+                LambdaName: cron-build-deck-stats
+            Events:
+                LastPeriodTrigger:
+                    Type: Schedule
+                    Properties:
+                        Schedule: cron(0 */4 * * ? *)
