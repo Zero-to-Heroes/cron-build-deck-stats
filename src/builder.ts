@@ -41,7 +41,7 @@ const buildDataForRank = (rank: RankGroup, replayRows: readonly ShortReplayRow[]
 };
 
 const buildDeckStats = (rankId: RankGroupIdType, replayRows: ShortReplayRow[]): readonly DeckStat[] => {
-	console.log('buildDeckStats', replayRows?.length);
+	logger.log('buildDeckStats', replayRows?.length);
 	const internalResult: { [deckstring: string]: DeckStat } = {};
 	for (const replay of replayRows) {
 		const existingDeckStat = internalResult[replay.playerDecklist] ?? initEmptyDeckStat(replay.playerDecklist);
@@ -92,7 +92,7 @@ const buildDeckStats = (rankId: RankGroupIdType, replayRows: ShortReplayRow[]): 
 		internalResult[replay.playerDecklist] = newStat;
 	}
 
-	console.log(
+	logger.log(
 		rankId,
 		'AAECAZICBNb5A4mLBOWwBJfvBBL36AOm9QP09gOB9wOE9wPO+QOsgASvgASwgASunwThpASXpQSwpQTerwSNtQTquQSuwASywQQA',
 		replayRows.filter(

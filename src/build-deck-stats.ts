@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import { getConnection, http, logBeforeTimeout, logger, S3 } from '@firestone-hs/aws-lambda-utils';
 import { AllCardsService } from '@firestone-hs/reference-data';
+import { ObjectList } from 'aws-sdk/clients/s3';
 import SqlString from 'sqlstring';
-import { constants, gunzip, gunzipSync, gzipSync } from 'zlib';
+import { constants, gzipSync } from 'zlib';
 import { buildDeckDataForNewRows } from './builder';
 import { mergeDeckData as buildFinalDeckData } from './merger';
-import { DeckData, FinalDeckData, RankGroupIdType } from './model';
+import { DataForRank, DeckData, FinalDeckData, RankGroupIdType } from './model';
 
 const allCards = new AllCardsService();
 const s3 = new S3();
@@ -13,6 +14,8 @@ const s3 = new S3();
 const S3_BUCKET_NAME = 'static.zerotoheroes.com';
 const S3_FOLDER = `api/ranked/decks`;
 const S3_FOLDER_SLICE = `${S3_FOLDER}/slices`;
+
+const NUMBER_OF_DECKS_TO_KEEP = 100;
 // /ranked-decks.gz.json`;
 
 // This example demonstrates a NodeJS 8.10 async handler[1], however of course you could use
@@ -22,9 +25,10 @@ export default async (event, context): Promise<any> => {
 	const cleanup = logBeforeTimeout(context);
 	await allCards.initializeCardsDb();
 
-	// configure S3 to remove files older than 30 / 100 days?
-	// send time periods back in results (so for each period, filter the files that we do use to perform the job)
-
+	// TODO:
+	// - reduce the number of decks
+	// - build different files for the various time/rank combinations, to reduce the file size
+	// - inside the app, implement this reactively, so as not to block the initial load of the app
 	const existingDeckData: readonly DeckData[] = await loadExistingDeckData();
 	logger.log('existingDeckData', existingDeckData);
 	const lastDataTimestamp: number = !existingDeckData?.length
@@ -34,7 +38,7 @@ export default async (event, context): Promise<any> => {
 	const lastDataDate: Date = lastDataTimestamp ? new Date(lastDataTimestamp) : null;
 	logger.log('lastDataDate', lastDataDate);
 	const replayRows: readonly ShortReplayRow[] = await loadReplayRows(lastDataDate);
-	const validRows = replayRows.filter(row => !!row.playerRank && !!row.playerDecklist);
+	const validRows = replayRows.filter(row => !!row.playerRank && !!row.playerDecklist && !!row.allowGameShare);
 	logger.log('replayRows', validRows.length);
 
 	const allRankGroups: readonly RankGroup[] = buildAllRankGroups();
@@ -45,24 +49,12 @@ export default async (event, context): Promise<any> => {
 	];
 	const newDeckSlice = buildDeckData(validRows, allRankGroups, gameFormats);
 	logger.log('newDeckSlice', newDeckSlice);
-
-	logger.log(
-		'AAECAZICBNb5A4mLBOWwBJfvBBL36AOm9QP09gOB9wOE9wPO+QOsgASvgASwgASunwThpASXpQSwpQTerwSNtQTquQSuwASywQQA after',
-		newDeckSlice.dataForFormat
-			.find(f => f.format === 'standard')
-			.dataForRank.find(r => r.rankGroup === 'legend-100')
-			.deckStats.find(
-				d =>
-					d.deckstring ===
-					'AAECAZICBNb5A4mLBOWwBJfvBBL36AOm9QP09gOB9wOE9wPO+QOsgASvgASwgASunwThpASXpQSwpQTerwSNtQTquQSuwASywQQA',
-			),
-	);
 	await saveSingleSlice(newDeckSlice);
 
 	const allSlices = [...existingDeckData, newDeckSlice];
 	const lastPatch = await getLastConstructedPatch();
 	const mergedData: FinalDeckData = buildFinalDeckData(allSlices, allRankGroups, gameFormats, lastPatch);
-	await saveFinalFile(mergedData);
+	await saveFinalFiles(mergedData);
 
 	cleanup();
 	return { statusCode: 200, body: null };
@@ -135,14 +127,25 @@ const extractLeague = (playerRank: string): { league: number | 'legend'; rank: n
 	return { league: +split[0], rank: +split[1] };
 };
 
-const saveFinalFile = async (deckData: FinalDeckData): Promise<void> => {
-	const dataStr = JSON.stringify(deckData, null, 4);
-	const gzipped = gzipSync(dataStr, {
-		level: constants.Z_BEST_COMPRESSION,
-	});
-	logger.log('gzipped buckets');
-	await s3.writeFile(gzipped, S3_BUCKET_NAME, `${S3_FOLDER}/ranked-decks.gz.json`, 'application/json', 'gzip');
-	logger.log('file saved', `${S3_FOLDER}/ranked-decks.gz.json`);
+const saveFinalFiles = async (finalData: FinalDeckData): Promise<void> => {
+	for (const timeData of finalData.statsForTimePeriod) {
+		for (const formatData of timeData.deckData.dataForFormat) {
+			for (const rankData of formatData.dataForRank) {
+				const dataWithLimitedDecks: DataForRank = {
+					...rankData,
+					deckStats: rankData.deckStats.slice(0, NUMBER_OF_DECKS_TO_KEEP),
+				};
+				const dataStr = JSON.stringify(dataWithLimitedDecks, null, 4);
+				const gzipped = gzipSync(dataStr, {
+					level: constants.Z_BEST_COMPRESSION,
+				});
+				logger.log('gzipped buckets');
+				const fileName = `ranked-decks-${formatData.format}-${timeData.timePeriod}-${dataWithLimitedDecks.rankGroup}.gz.json`;
+				await s3.writeFile(gzipped, S3_BUCKET_NAME, `${S3_FOLDER}/${fileName}`, 'application/json', 'gzip');
+				logger.log('file saved', `${S3_FOLDER}/${fileName}`);
+			}
+		}
+	}
 };
 
 const saveSingleSlice = async (deckData: DeckData): Promise<void> => {
@@ -178,11 +181,19 @@ const loadReplayRows = async (lastDataDate: Date): Promise<readonly ShortReplayR
 };
 
 const loadExistingDeckData = async (): Promise<readonly DeckData[]> => {
-	const fileKeys = await s3.loadAllFileKeys(S3_BUCKET_NAME, S3_FOLDER_SLICE);
-	console.log('fileKeys', fileKeys);
+	const files: ObjectList = await s3.loadAllFileKeys(S3_BUCKET_NAME, S3_FOLDER_SLICE);
+	logger.log('fileKeys', files);
 	const allContent = await Promise.all(
-		fileKeys.filter(key => !key.endsWith('/')).map(key => s3.readGzipContent(S3_BUCKET_NAME, key, 1)),
+		files.filter(file => !file.Key.endsWith('/')).map(file => s3.readGzipContent(S3_BUCKET_NAME, file.Key, 1)),
 	);
+	// Delete old data. The main goal is to keep the number of keys below 1000
+	// so that we don't have to handle pagination in the replies
+	// Keeping a history of 40 days also allows us to move to hourly updates if
+	// we want to get fresh data after patches
+	const keysToDelete = files
+		.filter(file => Date.now() - file.LastModified.getTime() > 40 * 24 * 60 * 60 * 1000)
+		.map(file => file.Key);
+	await s3.deleteFiles(S3_BUCKET_NAME, keysToDelete);
 	return allContent
 		.map(content => JSON.parse(content))
 		.map(
