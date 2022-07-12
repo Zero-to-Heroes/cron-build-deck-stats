@@ -6,9 +6,9 @@ import SqlString from 'sqlstring';
 import { constants, gzipSync } from 'zlib';
 import { buildDeckDataForNewRows } from './builder';
 import { mergeDeckData as buildFinalDeckData } from './merger';
-import { DataForRank, DeckData, FinalDeckData, RankGroupIdType } from './model';
+import { DataForRank, DeckData, FinalDeckData, RankForDeckData } from './model';
 
-const allCards = new AllCardsService();
+export const allCards = new AllCardsService();
 const s3 = new S3();
 
 const S3_BUCKET_NAME = 'static.zerotoheroes.com';
@@ -224,7 +224,7 @@ export interface ShortReplayRow {
 }
 
 export interface RankGroup {
-	readonly id: RankGroupIdType;
+	readonly id: RankForDeckData;
 	readonly filter: (row: ShortReplayRow) => boolean;
 }
 

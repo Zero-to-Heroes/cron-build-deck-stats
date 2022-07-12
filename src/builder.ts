@@ -1,6 +1,6 @@
 import { logger } from '@firestone-hs/aws-lambda-utils';
 import { RankGroup, ShortReplayRow } from './build-deck-stats';
-import { DataForFormat, DataForRank, DeckData, DeckStat, RankGroupIdType } from './model';
+import { DataForFormat, DataForRank, DeckData, DeckStat, RankForDeckData } from './model';
 
 export const buildDeckDataForNewRows = (
 	replayRows: readonly ShortReplayRow[],
@@ -40,7 +40,7 @@ const buildDataForRank = (rank: RankGroup, replayRows: readonly ShortReplayRow[]
 	};
 };
 
-const buildDeckStats = (rankId: RankGroupIdType, replayRows: ShortReplayRow[]): readonly DeckStat[] => {
+const buildDeckStats = (rankId: RankForDeckData, replayRows: ShortReplayRow[]): readonly DeckStat[] => {
 	logger.log('buildDeckStats', replayRows?.length);
 	const internalResult: { [deckstring: string]: DeckStat } = {};
 	for (const replay of replayRows) {
@@ -110,6 +110,8 @@ const buildDeckStats = (rankId: RankGroupIdType, replayRows: ShortReplayRow[]): 
 const initEmptyDeckStat = (deckstring: string): DeckStat => {
 	return {
 		deckstring: deckstring,
+		flatCardsList: [],
+		playerClass: null,
 		global: {
 			dataPoints: 0,
 			losses: 0,

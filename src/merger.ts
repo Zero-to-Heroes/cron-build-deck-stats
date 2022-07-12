@@ -1,6 +1,7 @@
 import { groupByFunction } from '@firestone-hs/aws-lambda-utils';
-import { PatchInfo, RankGroup } from './build-deck-stats';
-import { DataForFormat, DataForRank, DeckData, DeckStat, FinalDeckData } from './model';
+import { decode } from 'deckstrings';
+import { allCards, PatchInfo, RankGroup } from './build-deck-stats';
+import { DataForFormat, DataForRank, DeckData, DeckStat, FinalDeckData, TimeForDeckData } from './model';
 
 export const mergeDeckData = (
 	data: readonly DeckData[],
@@ -9,7 +10,7 @@ export const mergeDeckData = (
 	lastPatch: PatchInfo,
 ): FinalDeckData => {
 	const allTimePeriods: {
-		id: 'past-30' | 'past-seven' | 'past-three' | 'last-patch';
+		id: TimeForDeckData;
 		filter: (data: DeckData) => boolean;
 	}[] = [
 		{
@@ -17,11 +18,11 @@ export const mergeDeckData = (
 			filter: (data: DeckData) => Date.now() - data.lastUpdateDate.getTime() <= 30 * 24 * 60 * 60 * 1000,
 		},
 		{
-			id: 'past-seven',
+			id: 'past-7',
 			filter: (data: DeckData) => Date.now() - data.lastUpdateDate.getTime() <= 7 * 24 * 60 * 60 * 1000,
 		},
 		{
-			id: 'past-three',
+			id: 'past-3',
 			filter: (data: DeckData) => Date.now() - data.lastUpdateDate.getTime() <= 3 * 24 * 60 * 60 * 1000,
 		},
 		{
@@ -83,8 +84,17 @@ const mergeStats = (stats: readonly DeckStat[]): readonly DeckStat[] => {
 	return Object.keys(groupedByDecklist)
 		.map(deckstring => {
 			const decks = groupedByDecklist[deckstring];
+			const deckDefinition = decode(deckstring);
+			const playerClass = allCards.getCardFromDbfId(deckDefinition.heroes[0]).playerClass?.toLowerCase();
+			const flatCardsList = deckDefinition.cards
+				.flatMap(pair => Array(pair[1]).fill(pair[0]))
+				.map(dbfId => allCards.getCardFromDbfId(dbfId))
+				.sort((a, b) => a.dbfId - b.dbfId)
+				.map(card => card.id);
 			return {
 				deckstring: deckstring,
+				playerClass: playerClass,
+				flatCardsList: flatCardsList,
 				global: {
 					dataPoints: decks.map(deck => deck.global.dataPoints).reduce((a, b) => a + b, 0),
 					wins: decks.map(deck => deck.global.wins).reduce((a, b) => a + b, 0),

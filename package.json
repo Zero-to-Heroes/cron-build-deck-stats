@@ -1,6 +1,6 @@
 {
 	"name": "@firestone-hs/deck-stats",
-	"version": "1.0.0",
+	"version": "1.0.4",
 	"description": "",
 	"scripts": {
 		"lint": "eslint --color --fix --ext .ts .",
@@ -15,8 +15,7 @@
 	"author": "",
 	"license": "MIT",
 	"private": false,
-	"main": "dist/build-deck-stats.js",
-	"types": "dist/build-deck-stats.d.ts",
+	"types": "dist/model.d.ts",
 	"files": [
 		"dist/**/*"
 	],

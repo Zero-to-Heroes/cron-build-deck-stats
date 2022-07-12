@@ -4,7 +4,7 @@ export interface FinalDeckData {
 }
 
 export interface DeckDataForTimePeriod {
-	readonly timePeriod: 'all-time' | 'past-30' | 'past-seven' | 'past-three' | 'last-patch';
+	readonly timePeriod: TimeForDeckData;
 	readonly deckData: DeckData;
 }
 
@@ -15,12 +15,12 @@ export interface DeckData {
 
 export interface DataForFormat {
 	readonly lastUpdateDate: Date;
-	readonly format: 'standard' | 'wild' | 'classic';
+	readonly format: FormatForDeckData;
 	readonly dataForRank: readonly DataForRank[];
 }
 
 export interface DataForRank {
-	readonly rankGroup: RankGroupIdType;
+	readonly rankGroup: RankForDeckData;
 	readonly deckStats: readonly DeckStat[];
 	// Simply aggregates the info from all the deckStats to quickly know the sample size
 	readonly dataPoints: number;
@@ -28,6 +28,8 @@ export interface DataForRank {
 
 export interface DeckStat {
 	readonly deckstring: string;
+	readonly playerClass: string;
+	readonly flatCardsList: readonly string[];
 	readonly global: DeckStatData;
 	readonly goingFirst: DeckStatData;
 	readonly goingSecond: DeckStatData;
@@ -41,4 +43,6 @@ export interface DeckStatData {
 	readonly differentUsers?: number;
 }
 
-export type RankGroupIdType = 'all' | 'bronze-platinum' | 'diamond-legend' | 'legend' | 'legend-1000' | 'legend-100';
+export type FormatForDeckData = 'standard' | 'wild' | 'classic';
+export type TimeForDeckData = 'all-time' | 'past-30' | 'past-7' | 'past-3' | 'last-patch';
+export type RankForDeckData = 'all' | 'bronze-platinum' | 'diamond-legend' | 'legend' | 'legend-1000' | 'legend-100';
