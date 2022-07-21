@@ -6,7 +6,7 @@
 		"lint": "eslint --color --fix --ext .ts .",
 		"start": "webpack -w --color",
 		"test": "jest",
-		"build": "npm audit fix && webpack --env.buildEnv=prod --color",
+		"build": "webpack --env.buildEnv=prod --color",
 		"package": "sam package --template-file template.yaml --s3-bucket com.zerotoheroes.artifact --output-template-file template.packaged.yaml",
 		"deploy": "sam deploy --template-file template.packaged.yaml --stack-name TriggerBuildDeckStatsStack --capabilities CAPABILITY_IAM",
 		"clean": "rm -rf -v dist/*"
@@ -25,7 +25,7 @@
 		"@firestone-hs/reference-data": "^1.0.1",
 		"aws-sdk": "^2.1044.0",
 		"cross-fetch": "^3.1.5",
-		"deckstrings": "^2.1.0",
+		"deckstrings": "^2.2.1",
 		"jszip": "^3.7.1",
 		"mysql": "^2.17.1",
 		"serverless-mysql": "^1.5.1",

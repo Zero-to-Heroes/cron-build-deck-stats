@@ -12,7 +12,7 @@ Resources:
             Runtime: nodejs12.x
             Timeout: 900
             CodeUri: ./dist/build-deck-stats
-            MemorySize: 700
+            MemorySize: 3000
             Policies:
                 - AWSLambdaVPCAccessExecutionRole
                 - AmazonSESFullAccess

@@ -92,18 +92,18 @@ const buildDeckStats = (rankId: RankForDeckData, replayRows: ShortReplayRow[]): 
 		internalResult[replay.playerDecklist] = newStat;
 	}
 
-	logger.log(
-		rankId,
-		'AAECAZICBNb5A4mLBOWwBJfvBBL36AOm9QP09gOB9wOE9wPO+QOsgASvgASwgASunwThpASXpQSwpQTerwSNtQTquQSuwASywQQA',
-		replayRows.filter(
-			row =>
-				row.playerDecklist ===
-				'AAECAZICBNb5A4mLBOWwBJfvBBL36AOm9QP09gOB9wOE9wPO+QOsgASvgASwgASunwThpASXpQSwpQTerwSNtQTquQSuwASywQQA',
-		).length,
-		internalResult[
-			'AAECAZICBNb5A4mLBOWwBJfvBBL36AOm9QP09gOB9wOE9wPO+QOsgASvgASwgASunwThpASXpQSwpQTerwSNtQTquQSuwASywQQA'
-		].global.dataPoints,
-	);
+	// logger.log(
+	// 	rankId,
+	// 	'AAECAZICBNb5A4mLBOWwBJfvBBL36AOm9QP09gOB9wOE9wPO+QOsgASvgASwgASunwThpASXpQSwpQTerwSNtQTquQSuwASywQQA',
+	// 	replayRows.filter(
+	// 		row =>
+	// 			row.playerDecklist ===
+	// 			'AAECAZICBNb5A4mLBOWwBJfvBBL36AOm9QP09gOB9wOE9wPO+QOsgASvgASwgASunwThpASXpQSwpQTerwSNtQTquQSuwASywQQA',
+	// 	).length,
+	// 	internalResult[
+	// 		'AAECAZICBNb5A4mLBOWwBJfvBBL36AOm9QP09gOB9wOE9wPO+QOsgASvgASwgASunwThpASXpQSwpQTerwSNtQTquQSuwASywQQA'
+	// 	].global.dataPoints,
+	// );
 	return Object.values(internalResult).sort((a, b) => b.global.dataPoints - a.global.dataPoints);
 };
 
